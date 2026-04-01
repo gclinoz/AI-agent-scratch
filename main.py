@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from prompts import system_prompt
-from call_function import available_functions
+from call_function import available_functions, call_function
 import argparse
 
 parser = argparse.ArgumentParser(description="Chatbot")
@@ -45,11 +45,36 @@ if args.verbose:
         print(f"User prompt: {args.user_prompt}")
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-        for fn in  response.function_calls:
-            print(f"Calling function: {fn.name}({fn.args})")
+        result_list = []
+        
+        for fn in response.function_calls:
+            function_call_result = call_function(fn)
+            if len(function_call_result.parts) == 0:
+                raise Exception("Empty function result parts list")
+
+            if function_call_result.parts[0].function_response == None:
+                raise Exception("First item in the list of parts is None")
+
+            if function_call_result.parts[0].function_response.response == None:
+                raise Exception("Actucal function result is None")
+
+            result_list.append(function_call_result.parts[0])
+            print(f"-> {function_call_result.parts[0].function_response.response}")
 
 if response.function_calls == None:
     print(f"Response:\n{response.text}")
 else:
-    for fn in  response.function_calls:
-        print(f"Calling function: {fn.name}({fn.args})")
+    result_list = []
+    
+    for fn in response.function_calls:
+        function_call_result = call_function(fn)
+        if len(function_call_result.parts) == 0:
+            raise Exception("Empty function result parts list")
+
+        if function_call_result.parts[0].function_response == None:
+            raise Exception("First item in the list of parts is None")
+
+        if function_call_result.parts[0].function_response.response == None:
+            raise Exception("Actucal function result is None")
+
+        result_list.append(function_call_result.parts[0])
